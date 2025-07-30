@@ -1,0 +1,135 @@
+
+services:
+  proxysql:
+    image: proxysql/proxysql:2.6.0
+    container_name: proxysql
+    ports:
+      - "6032:6032"
+      - "6033:6033"
+    volumes:
+      - ./proxysql.cnf:/etc/proxysql.cnf
+      - ./proxysql-data:/var/lib/proxysql
+    restart: always
+
+  admin-master-host:
+    image: mariadb:10.6
+    container_name: admin-master-host
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3311:3306"
+    volumes:
+      - ./master:/docker-entrypoint-initdb.d
+      - ./admin-master-host:/var/lib/mysql
+    command:
+      - --server-id=1
+      - --log-bin=mariadb-bin
+      - --binlog-format=row
+      - --gtid-domain-id=1
+      - --log-slave-updates=ON
+      - --skip-bind-address
+      - --skip-name-resolve
+
+  admin-replica-host-1:
+    image: mariadb:10.6
+    container_name: admin-replica-host-1
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3312:3306"
+    depends_on:
+      - admin-master-host
+    volumes:
+      - ./slave-admin:/docker-entrypoint-initdb.d
+      - ./admin-replica-host-1-data:/var/lib/mysql
+    command:
+      - --server-id=2
+      - --relay-log=relay-log
+      - --log-bin=mariadb-bin
+      - --read-only=ON
+      - --gtid-domain-id=1
+      - --skip-bind-address
+      - --skip-name-resolve
+
+  admin-replica-host-2:
+    image: mariadb:10.6
+    container_name: admin-replica-host-2
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3313:3306"
+    depends_on:
+      - admin-master-host
+    volumes:
+      - ./slave-admin:/docker-entrypoint-initdb.d
+      - ./admin-replica-host-2-data:/var/lib/mysql
+    command:
+      - --server-id=3
+      - --relay-log=relay-log
+      - --log-bin=mariadb-bin
+      - --read-only=ON
+      - --gtid-domain-id=1
+      - --skip-bind-address
+      - --skip-name-resolve
+
+  state-ch-master-host:
+    image: mariadb:10.6
+    container_name: state-ch-master-host
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3321:3306"
+    volumes:
+      - ./master:/docker-entrypoint-initdb.d
+      - ./state-ch-master-host:/var/lib/mysql
+    command:
+      - --server-id=4
+      - --log-bin=mariadb-bin
+      - --binlog-format=row
+      - --gtid-domain-id=1
+      - --log-slave-updates=ON
+      - --skip-bind-address
+      - --skip-name-resolve
+
+  state-ch-replica-host-1:
+    image: mariadb:10.6
+    container_name: state-ch-replica-host-1
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3322:3306"
+    depends_on:
+      - state-ch-master-host
+    volumes:
+      - ./slave-ch:/docker-entrypoint-initdb.d
+      - ./state-ch-replica-host-1:/var/lib/mysql
+    command:
+      - --server-id=5
+      - --relay-log=relay-log
+      - --log-bin=mariadb-bin
+      - --read-only=ON
+      - --gtid-domain-id=1
+      - --skip-bind-address
+      - --skip-name-resolve
+
+  state-ch-replica-host-2:
+    image: mariadb:10.6
+    container_name: state-ch-replica-host-2
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3323:3306"
+    depends_on:
+      - state-ch-master-host
+    volumes:
+      - ./slave-ch:/docker-entrypoint-initdb.d
+      - ./state-ch-replica-host-2-data:/var/lib/mysql
+    command:
+      - --server-id=6
+      - --relay-log=relay-log
+      - --log-bin=mariadb-bin
+      - --read-only=ON
+      - --gtid-domain-id=1
+      - --skip-bind-address
+      - --skip-name-resolve
+

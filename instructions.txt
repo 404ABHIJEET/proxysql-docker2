@@ -1,0 +1,58 @@
+# Docker setup guide
+
+docker --version # Check Docker version
+docker-compose --version # Check Docker Compose version
+
+chmod +x slave-ch/init.sh slave-admin/init.sh
+docker-compose up -d
+docker exec -i mysql-master mysql -uroot -proot < ./master.sql
+docker exec -it proxysql mysql -uadmin -padmin -P6032 < ./proxysql.sql
+
+# to check if mysql backend is connected with proxysql or not
+SELECT * FROM monitor.mysql_server_ping_log ORDER BY time_start_us DESC LIMIT 6;
+# error must be NULL is all rows
+exit;
+
+# To check which query going in which hostgroup 
+# login to admin proxysql
+docker exec -it proxysql mysql -uadmin -padmin -P6032 
+-- run this query
+SELECT  hostgroup, username, digest_text, count_star from stats_mysql_query_digest;
+-- to truncate this table
+truncate stats_mysql_query_digest;
+
+
+# Addition information
+
+# Exposed ports
+- proxysql admin: 6032 to 6032
+- proxysql mysql: 6033 to 6033
+
+# logins for proxysql and mysql servers
+
+docker exec -it proxysql mysql -uadmin -padmin -P6032 
+docker exec -it proxysql mysql -uappuser -pappuser -P6033
+
+docker exec -it admin-master-host mysql -uroot -proot 
+docker exec -it admin-replica-host-1 mysql -uroot -proot 
+docker exec -it admin-replica-host-2 mysql -uroot -proot 
+
+docker exec -it state-ch-master-host mysql -uroot -proot
+docker exec -it state-ch-replica-host-1 mysql -uroot -proot
+docker exec -it state-ch-replica-host-2 mysql -uroot -proot
+
+Stop All MySQL Containers:
+docker stop proxysql
+docker stop mysql-master
+docker stop mysql-replica1
+docker stop mysql-replica2
+
+Tear Down Environment:
+docker-compose down
+
+Clean Up Volumes (Optional):
+docker volume prune
+
+Rebuild and Restart Containers:
+docker-compose up --build -d
+ 

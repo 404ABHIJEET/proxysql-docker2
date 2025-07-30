@@ -1,0 +1,9 @@
+STOP SLAVE;
+CHANGE MASTER TO
+  MASTER_HOST='mariadb-state-ch-master',
+  MASTER_PORT=3306,
+  MASTER_USER='repl',
+  MASTER_PASSWORD='replpass',
+  MASTER_USE_GTID=slave_pos;
+
+START SLAVE;
